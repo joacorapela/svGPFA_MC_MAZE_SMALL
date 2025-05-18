@@ -1,0 +1,10 @@
+*~
+*.swp
+*.out
+.mypy_cache
+__pycache__
+data/*
+figures/*
+init/*
+results/*
+docs/*
