@@ -4,8 +4,6 @@ import argparse
 import configparser
 import pickle
 import numpy as np
-import pandas as pd
-import scipy.io
 
 from dandi.dandiapi import DandiAPIClient
 from pynwb import NWBHDF5IO
@@ -16,27 +14,27 @@ import svGPFA.utils.miscUtils
 def main(argv):
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dandiset_id", help="dandiset ID", type=str,
+    parser.add_argument("--dandiset_ID", help="dandiset ID", type=str,
                         default="000140")
     parser.add_argument("--filepath", help="dandi filepath", type=str,
                         default="sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
     parser.add_argument("--epoch_event_name", help="epoch event name",
                         type=str, default="move_onset_time")
-    parser.add_argument("--epoched_spike_times_filename_pattern",
+    parser.add_argument("--epoched_spikes_times_filename_pattern",
                         help="epched spikes times filename pattern", type=str,
                         default="../../results/00000000_dandisetID{:s}_epochedEvent{:s}_epochedSpikesTimes.{:s}")
     args = parser.parse_args()
 
-    dandiset_id = args.dandiset_id
+    dandiset_ID = args.dandiset_ID
     filepath = args.filepath
     epoch_event_name = args.epoch_event_name
-    epoched_spike_times_filename_pattern = args.epoched_spike_times_filename_pattern
+    epoched_spikes_times_filename_pattern = args.epoched_spikes_times_filename_pattern
 
     #%%
     # Download data
     # ^^^^^^^^^^^^^
     with DandiAPIClient() as client:
-        asset = client.get_dandiset(dandiset_id, "draft").get_asset_by_path(filepath)
+        asset = client.get_dandiset(dandiset_ID, "draft").get_asset_by_path(filepath)
         s3_path = asset.get_content_url(follow_redirects=1, strip_query=True)
 
     io = NWBHDF5IO(s3_path, mode="r", driver="ros3")
@@ -90,8 +88,8 @@ def main(argv):
                        "trials_end_times": trials_end_times,
                       }
     epoched_spikes_times_filename = \
-        epoched_spike_times_filename_pattern.format(
-            dandiset_id, epoch_event_name, "pickle")
+        epoched_spikes_times_filename_pattern.format(
+            dandiset_ID, epoch_event_name, "pickle")
     with open(epoched_spikes_times_filename, "wb") as f:
         pickle.dump(results_to_save, f)
     print("Saved results to {:s}".format(
