@@ -17,7 +17,8 @@ def main(argv):
     parser.add_argument("--dandiset_ID", help="dandiset ID", type=str,
                         default="000140")
     parser.add_argument("--filepath", help="dandi filepath", type=str,
-                        default="sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
+                        default="../../data/000140/sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
+                        # default="sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
     parser.add_argument("--epoch_event_name", help="epoch event name",
                         type=str, default="move_onset_time")
     parser.add_argument("--epoched_spikes_times_filename_pattern",
@@ -33,14 +34,17 @@ def main(argv):
     #%%
     # Download data
     # ^^^^^^^^^^^^^
-    with DandiAPIClient() as client:
-        asset = client.get_dandiset(dandiset_ID, "draft").get_asset_by_path(filepath)
-        s3_path = asset.get_content_url(follow_redirects=1, strip_query=True)
+    # with DandiAPIClient() as client:
+    #     asset = client.get_dandiset(dandiset_ID, "draft").get_asset_by_path(filepath)
+    #     s3_path = asset.get_content_url(follow_redirects=1, strip_query=True)
 
-    io = NWBHDF5IO(s3_path, mode="r", driver="ros3")
-    nwbfile = io.read()
-    units = nwbfile.units
-    units_df = units.to_dataframe()
+    # io = NWBHDF5IO(s3_path, mode="r", driver="ros3")
+
+    with NWBHDF5IO(filepath, 'r') as io:
+        nwbfile = io.read()
+        units_df = nwbfile.units.to_dataframe()
+        trials_df = nwbfile.intervals["trials"].to_dataframe()
+
 
     # n_neurons
     n_neurons = units_df.shape[0]
@@ -53,9 +57,6 @@ def main(argv):
         units_ids[n] = units_df.index[n]
         units_locs[n] = units_df.iloc[n].electrodes['location']
         continuous_spikes_times[n] = units_df.iloc[n]['spike_times']
-
-    # trials
-    trials_df = nwbfile.intervals["trials"].to_dataframe()
 
     # n_trials
     n_trials = trials_df.shape[0]
