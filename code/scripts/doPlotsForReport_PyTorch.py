@@ -138,7 +138,6 @@ def main(argv):
     # align_event_times = [trials_info[align_event_name][trial_id]
     #                      for trial_id in trials_ids]
 
-    """
     # plot lower bound history
     fig = svGPFA.plot.plotUtilsPlotly.getPlotLowerBoundHist(lowerBoundHist=lowerBoundHist)
     fig.write_image(lowerBoundHistVsIterNoFigFilenamePattern.format("png"))
@@ -207,14 +206,13 @@ def main(argv):
         title=title)
     fig.write_image(embeddingsFigFilenamePattern.format("png"))
     fig.write_html(embeddingsFigFilenamePattern.format("html"))
-    """
 
     # calculate expected IF values (for KS test and IF plots)
     with torch.no_grad():
         cif_values = model.computeExpectedPosteriorCIFs(times=trials_times)
     cif_values_GOF = cif_values[trial_to_plot][cluster_id_to_plot_index]
     cif_values_GOF = cif_values_GOF.detach().numpy()
-    """
+
     # CIF
 
     # CIFs one neuron all trials
@@ -235,13 +233,12 @@ def main(argv):
     )
     fig.write_image(CIFsOneNeuronAllTrialsFigFilenamePattern.format("png"))
     fig.write_html(CIFsOneNeuronAllTrialsFigFilenamePattern.format("html"))
-    """
 
     trial_times_GOF = trials_times[trial_to_plot][:, 0]
     trial_times_GOF = trial_times_GOF.detach().numpy()
     spikes_times_GOF = spikes_times[trial_to_plot][cluster_id_to_plot_index]
     spikes_times_GOF = spikes_times_GOF.detach().numpy()
-    """
+
     title = "Trial {:d}, Neuron {:d} ({:d} spikes)".format(
         trial_to_plot, cluster_id_to_plot, len(spikes_times_GOF))
 
@@ -263,7 +260,6 @@ def main(argv):
         fpr=fpr, tpr=tpr, auc=roc_auc)
     fig.write_image(rocFigFilenamePattern.format("png"))
     fig.write_html(rocFigFilenamePattern.format("html"))
-    """
 
     # plot orthonormalized embedding parameters
     hovertemplate = "value: %{y}<br>" + \
