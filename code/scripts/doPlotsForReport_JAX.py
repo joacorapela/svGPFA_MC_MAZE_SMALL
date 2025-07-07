@@ -6,21 +6,26 @@ import numpy as np
 import jax.numpy as jnp
 import pickle
 import argparse
+from pynwb import NWBHDF5IO
 
 # import gcnu_common.stats.pointProcesses.tests
 import svGPFA.utils.miscUtils
 import svGPFA.utils.statsUtils
 import svGPFA.plot.plotUtilsPlotly
-# import iblUtils
+import utils
 
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("estResNumber", help="estimation result number", type=int)
+    parser.add_argument("--filepath", help="dandi filepath", type=str,
+                        default="../../data/000140/sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
     parser.add_argument("--latent_to_plot", help="trial to plot", type=int, default=0)
     parser.add_argument("--latents_to_3D_plot", help="latents to plot in 3D plot",
                         type=str, default="[0,1,2]")
+    parser.add_argument("--latents_to_2D_plot", help="latents to plot in 2D plot",
+                        type=str, default="[0,1]")
     parser.add_argument("--cluster_id_to_plot", help="cluster id to plot",
-                        type=int, default=-1)
+                        type=int, default=0)
     parser.add_argument("--trial_to_plot", help="trial to plot", type=int, default=0)
     parser.add_argument("--ksTestGamma", help="gamma value for KS test", type=int, default=10)
     parser.add_argument("--n_time_steps_CIF",
@@ -35,20 +40,22 @@ def main(argv):
                         type=str,
                         default="move_onset_time")
     parser.add_argument("--events_names",
-                        help="names of marked events (e.g., stimOn_times, goCue_times, response_times, feedback_times, stimOff_times)",
+                        help="names of marked events (e.g., start_time, target_on_time, go_cue_time, move_onset_time, stop_time)",
                         type=str,
-                        default="[stimOn_times,response_times,stimOff_times]")
+                        default="[start_time,target_on_time,go_cue_time,move_onset_time,stop_time]")
     parser.add_argument("--events_colors",
-                        help="colors for marked events (e.g., stimOn_times, goCue_times, response_times, feedback_times, stimOff_times)",
-                        type=str, default="[magenta,green,black]")
+                        help="colors for marked events (e.g., start_time, target_on_time, go_cue_time, move_onset_time, stop_time)",
+                        type=str, default="[black,cyan,magenta,orange,pink]")
     parser.add_argument("--events_markers",
-                        help="markers for marked events (e.g., stimOn_times, goCue_times, response_times, feedback_times, stimOff_times)",
-                        type=str, default="[circle,circle,circle]")
+                        help="markers for marked events (e.g., start_time, target_on_time, go_cue_time, move_onset_time, stop_time)",
+                        type=str, default="[circle,circle,circle,circle,circle]")
     args = parser.parse_args()
 
     estResNumber = args.estResNumber
+    filepath = args.filepath
     latent_to_plot = args.latent_to_plot
     latents_to_3D_plot = [int(str) for str in args.latents_to_3D_plot[1:-1].split(",")]
+    latents_to_2D_plot = [int(str) for str in args.latents_to_2D_plot[1:-1].split(",")]
     cluster_id_to_plot = args.cluster_id_to_plot
     trial_to_plot = args.trial_to_plot
     ksTestGamma = args.ksTestGamma
@@ -59,15 +66,25 @@ def main(argv):
     events_markers = [str for str in args.events_markers[1:-1].split(",")]
     n_time_steps_CIF = args.n_time_steps_CIF
 
+    with NWBHDF5IO(filepath, 'r') as io:
+        nwbfile = io.read()
+        trials_df = nwbfile.intervals["trials"].to_dataframe()
+
+    trials_colors_patterns = utils.get_trials_colors_patterns(trials_df=trials_df)
+    trials_colors = [trial_color_pattern.format(1.0)
+                     for trial_color_pattern in trials_colors_patterns]
+
     modelSaveFilename = "../../results/{:08d}_estimatedModel.pickle".format(estResNumber)
-    lowerBoundHistVsIterNoFigFilenamePattern = "../../figures/{:08d}_lowerBoundHistVSIterNo.{{:s}}".format(estResNumber)
+    lowerBoundHistVsIterNoFigFilenamePattern = "../../figures/{:08d}_lowerBoundHistVsIterNo.{{:s}}".format(estResNumber)
     lowerBoundHistVsElapsedTimeFigFilenamePattern = "../../figures/{:08d}_lowerBoundHistVsElapsedTime.{{:s}}".format(estResNumber)
     latentsFigFilenamePattern = "../../figures/{:08d}_latent{:03d}.{{:s}}".format(estResNumber, latent_to_plot)
     orthonormalizedLatentsFigFilenamePattern = "../../figures/{:08d}_orthonormalized_latent{:03d}.{{:s}}".format(estResNumber, latent_to_plot)
     latents_to_3D_plot_str = "".join(str(i)+"_" for i in latents_to_3D_plot)
+    latents_to_2D_plot_str = "".join(str(i)+"_" for i in latents_to_2D_plot)
     orthonormalizedLatents3DFigFilenamePattern = "../../figures/{:08d}_orthonormalized_latents{:s}.{{:s}}".format(estResNumber, latents_to_3D_plot_str)
-    embeddingsFigFilenamePattern = "../../figures/{:08d}_embedding_clusterID_{:d}.{{:s}}".format(estResNumber, cluster_id_to_plot)
-    orthonormalizedEmbeddingParamsFigFilenamePattern = "../../figures/{:08d}_orthonormalized_embedding_params.{{:s}}".format(estResNumber)
+    orthonormalizedLatents2DFigFilenamePattern = "../../figures/{:08d}_orthonormalized_latents{:s}.{{:s}}".format(estResNumber, latents_to_2D_plot_str)
+    preIntensityFigFilenamePattern = "../../figures/{:08d}_preIntensity_clusterID_{:d}.{{:s}}".format(estResNumber, cluster_id_to_plot)
+    orthonormalizedEmbeddingParamsFigFilenamePattern = "../../figures/{:08d}_orthonormalized_preIntensity_params.{{:s}}".format(estResNumber)
 #     CIFFigFilenamePattern = "../../figures/{:08d}_CIF_trial{:03d}_cluster_id_{:03d}.{{:s}}".format(estResNumber, trial_to_plot, cluster_id_to_plot)
 #     CIFimageFigFilenamePattern = "../../figures/{:08d}_CIFimage_cluster_id_{:03d}_sortedBy{:s}.{{:s}}".format(estResNumber, cluster_id_to_plot, column_name)
     CIFsOneNeuronAllTrialsFigFilenamePattern = "../../figures/{:08d}_intensityFunctionOneNeuronAllTrials_cluster_id_{:03d}.{{:s}}".format(estResNumber, cluster_id_to_plot)
@@ -77,9 +94,11 @@ def main(argv):
 
     with open(modelSaveFilename, "rb") as f:
         est_results = pickle.load(f)
-    est_results["estimation_params"] = est_results.pop("estimaton_params")
-    trials_ids = est_results["trials_ids"]
+    if "estimation_params" not in est_results.keys():
+        est_results["estimation_params"] = est_results.pop("estimaton_params")
+    trials_ids = est_results["trials_ids"].tolist()
     kernels_types = est_results["kernels_types"]
+    clusters_ids = est_results["clusters_ids"][0]
     leg_quad_points = est_results["estimation_params"]["ell_calculation_params"]["leg_quad_points"]
     reg_param = est_results["estimation_params"]["optim_params"]["prior_cov_reg_param"]
     lowerBoundHist = est_results["lower_bound_hist"]
@@ -94,7 +113,7 @@ def main(argv):
     ind_points_locs = estimated_params["ind_points_locs"]
 
 #     n_trials = len(spikes_times)
-#     cluster_id_to_plot_index = torch.nonzero(torch.tensor(clusters_ids==cluster_id_to_plot))
+    cluster_id_to_plot_index = np.where(clusters_ids==cluster_id_to_plot)[0][0]
 #     clusters_ids_str = " ".join(str(i) for i in clusters_ids)
 #     if len(cluster_id_to_plot_index) == 0:
 #         raise ValueError("Cluster id {:d} is not valid. Valid cluster id are ".format(
@@ -106,8 +125,9 @@ def main(argv):
 #         n_steps=n_time_steps_CIF)
 # 
 #     trials_labels = np.array([str(i) for i in trials_ids])
+
 #     n_trials = len(spikes_times)
-# 
+
 #     trials_choices = [trials_info["choice"][trial_id]
 #                       for trial_id in trials_ids]
 #     trials_rewarded = [trials_info["feedbackType"][trial_id]
@@ -130,18 +150,19 @@ def main(argv):
 #                           "rewarded_prev": np.insert(trials_rewarded[:-1], 0,
 #                                                      np.NAN)}
 # 
-#     events_times = []
-#     for event_name in events_names:
-#         events_times.append([trials_info[event_name][trial_id]
-#                              for trial_id in trials_ids])
-# 
-#     marked_events_times, marked_events_colors, marked_events_markers = \
-#         iblUtils.buildMarkedEventsInfo(events_times=events_times,
-#                                        events_colors=events_colors,
-#                                        events_markers=events_markers)
-# 
-#     align_event_times = [trials_info[align_event_name][trial_id]
-#                          for trial_id in trials_ids]
+    events_times = []
+    for event_name in events_names:
+        events_times.append([trials_df.iloc[trial_id][event_name]
+                             for trial_id in trials_ids])
+
+    marked_events_times, marked_events_colors, marked_events_markers = \
+        utils.buildMarkedEventsInfo(events_times=events_times,
+                                    events_colors=events_colors,
+                                    events_markers=events_markers)
+
+    align_event_times = [trials_df.iloc[trial_id][align_event_name]
+                         for trial_id in trials_ids]
+    times = jnp.asarray(leg_quad_points)
 
     # plot lower bound history
     fig = svGPFA.plot.plotUtilsPlotly.getPlotLowerBoundHist(lowerBoundHist=lowerBoundHist)
@@ -160,7 +181,6 @@ def main(argv):
 
     l_means = np.transpose(jnp.asarray(l_means), (1, 2, 0))
     l_vars = np.transpose(jnp.asarray(l_vars), (1, 2, 0))
-    times = jnp.asarray(leg_quad_points)
 #     testMuK, testVarK = model.predictLatents(times=trials_times)
     fig = svGPFA.plot.plotUtilsPlotly.getPlotLatentAcrossTrials(
         times=times,
@@ -168,8 +188,8 @@ def main(argv):
         latentsSTDs=np.sqrt(l_vars),
         latentToPlot=latent_to_plot,
         trials_ids=trials_ids,
-        # trials_colors_patterns=trials_colors_patterns,
-        xlabel="Time (msec)")
+        trials_colors_patterns=trials_colors_patterns,
+        xlabel="Time (sec)")
     fig.write_image(latentsFigFilenamePattern.format("png"))
     fig.write_html(latentsFigFilenamePattern.format("html"))
 
@@ -178,48 +198,67 @@ def main(argv):
 #     test_mu_k_np = [testMuK[r].detach().numpy() for r in range(len(testMuK))]
     estimatedC, estimatedD = jnp.asarray(C), jnp.asarray(d)
 #     estimatedC_np = estimatedC.detach().numpy()
+
     fig = svGPFA.plot.plotUtilsPlotly.getPlotOrthonormalizedLatentAcrossTrials(
         trials_times=times, latentsMeans=l_means,
         C=estimatedC, trials_ids=trials_ids,
         latentToPlot=latent_to_plot,
-#         align_event_times=align_event_times,
-#         marked_events_times=marked_events_times,
-#         marked_events_colors=marked_events_colors,
-#         marked_events_markers=marked_events_markers,
-#         trials_colors=trials_colors,
+        align_event_times=align_event_times,
+        marked_events_times=marked_events_times,
+        marked_events_colors=marked_events_colors,
+        marked_events_markers=marked_events_markers,
+        trials_colors=trials_colors,
 #         trials_annotations=trials_annotations,
-        xlabel="Time (msec)")
+        xlabel="Time (sec)")
     fig.write_image(orthonormalizedLatentsFigFilenamePattern.format("png"))
     fig.write_html(orthonormalizedLatentsFigFilenamePattern.format("html"))
-# 
-#     fig = svGPFA.plot.plotUtilsPlotly.get3DPlotOrthonormalizedLatentsAcrossTrials(
-#         trials_times=trials_times.numpy(), latentsMeans=test_mu_k_np,
-#         C=estimatedC_np, trials_ids=trials_ids,
-#         latentsToPlot=latents_to_3D_plot,
-#         align_event_times=align_event_times,
-#         marked_events_times=marked_events_times,
-#         marked_events_colors=marked_events_colors,
-#         marked_events_markers=marked_events_markers,
-#         trials_colors=trials_colors,
-#         trials_annotations=trials_annotations,
-#     )
-#     fig.write_image(orthonormalizedLatents3DFigFilenamePattern.format("png"))
-#     fig.write_html(orthonormalizedLatents3DFigFilenamePattern.format("html"))
-# 
-#     # plot embedding
-#     embeddingMeans, embeddingVars = model.predictEmbedding(times=trials_times)
-#     embeddingMeans = embeddingMeans.detach().numpy()
-#     embeddingVars = embeddingVars.detach().numpy()
-#     title = "Neuron {:d}".format(cluster_id_to_plot)
-#     fig = svGPFA.plot.plotUtilsPlotly.getPlotEmbeddingAcrossTrials(
-#         times=trials_times.numpy(),
-#         embeddingsMeans=embeddingMeans[:, :, cluster_id_to_plot_index],
-#         embeddingsSTDs=np.sqrt(embeddingVars[:, :, cluster_id_to_plot_index]),
-#         trials_colors_patterns=trials_colors_patterns,
-#         title=title)
-#     fig.write_image(embeddingsFigFilenamePattern.format("png"))
-#     fig.write_html(embeddingsFigFilenamePattern.format("html"))
-# 
+
+    """
+    fig = svGPFA.plot.plotUtilsPlotly.get2DPlotOrthonormalizedLatentsAcrossTrials(
+        trials_times=times, latentsMeans=l_means,
+        C=estimatedC, trials_ids=trials_ids,
+        latentsToPlot=latents_to_2D_plot,
+        align_event_times=align_event_times,
+        marked_events_times=marked_events_times,
+        marked_events_colors=marked_events_colors,
+        marked_events_markers=marked_events_markers,
+        trials_colors=trials_colors,
+        # trials_annotations=trials_annotations,
+    )
+    fig.write_image(orthonormalizedLatents2DFigFilenamePattern.format("png"))
+    fig.write_html(orthonormalizedLatents2DFigFilenamePattern.format("html"))
+
+    fig = svGPFA.plot.plotUtilsPlotly.get3DPlotOrthonormalizedLatentsAcrossTrials(
+        trials_times=times, latentsMeans=l_means,
+        C=estimatedC, trials_ids=trials_ids,
+        latentsToPlot=latents_to_3D_plot,
+        align_event_times=align_event_times,
+        marked_events_times=marked_events_times,
+        marked_events_colors=marked_events_colors,
+        marked_events_markers=marked_events_markers,
+        trials_colors=trials_colors,
+        # trials_annotations=trials_annotations,
+    )
+    fig.write_image(orthonormalizedLatents3DFigFilenamePattern.format("png"))
+    fig.write_html(orthonormalizedLatents3DFigFilenamePattern.format("html"))
+
+    # plot preIntensity
+    h_means, h_vars = svGPFA.utils.statsUtils.computePreIntensity(
+        C=C, d=d, vMean=vMean, vChol=vChol, kernels_params=kernels_params,
+        ind_points_locs=ind_points_locs, kernels_types=kernels_types,
+        leg_quad_points=leg_quad_points, reg_param=reg_param)
+
+    title = "Neuron {:d}".format(cluster_id_to_plot)
+    fig = svGPFA.plot.plotUtilsPlotly.getPlotPreIntensityAcrossTrials(
+        times=times,
+        preIntensityMeans=h_means[:, cluster_id_to_plot_index, :],
+        preIntensitySTDs=np.sqrt(h_vars[:, cluster_id_to_plot_index, :]),
+        trials_colors_patterns=trials_colors_patterns,
+        title=title)
+    fig.write_image(preIntensityFigFilenamePattern.format("png"))
+    fig.write_html(preIntensityFigFilenamePattern.format("html"))
+    """
+
 #     # calculate expected IF values (for KS test and IF plots)
 #     with torch.no_grad():
 #         cif_values = model.computeExpectedPosteriorCIFs(times=trials_times)
@@ -270,7 +309,7 @@ def main(argv):
 #     fig.write_image(rocFigFilenamePattern.format("png"))
 #     fig.write_html(rocFigFilenamePattern.format("html"))
 # 
-#     # plot orthonormalized embedding parameters
+#     # plot orthonormalized preIntensity parameters
 #     hovertemplate = "value: %{y}<br>" + \
 #                     "neuron index: %{x}<br>" + \
 #                     "%{text}"
@@ -283,14 +322,16 @@ def main(argv):
 #         orthonormalizedEmbeddingParamsFigFilenamePattern.format("png"))
 #     fig.write_html(
 #         orthonormalizedEmbeddingParamsFigFilenamePattern.format("html"))
-# 
-#     # plot kernel parameters
-#     kernelsParams = model.getKernelsParams()
-#     kernelsTypes = [type(kernel).__name__ for kernel in model.getKernels()]
-#     fig = svGPFA.plot.plotUtilsPlotly.getPlotKernelsParams(
-#         kernelsTypes=kernelsTypes, kernelsParams=kernelsParams)
-#     fig.write_image(kernelsParamsFigFilenamePattern.format("png"))
-#     fig.write_html(kernelsParamsFigFilenamePattern.format("html"))
+
+    # plot kernel parameters
+    # kernelsParams = model.getKernelsParams()
+    # kernelsTypes = [type(kernel).__name__ for kernel in model.getKernels()]
+    """
+    fig = svGPFA.plot.plotUtilsPlotly.getPlotKernelsParams(
+        kernelsTypes=kernels_types, kernelsParams=kernels_params)
+    fig.write_image(kernelsParamsFigFilenamePattern.format("png"))
+    fig.write_html(kernelsParamsFigFilenamePattern.format("html"))
+    """
 
     breakpoint()
 
