@@ -25,7 +25,7 @@ def main(argv):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--est_init_number", help="estimation init number",
-                        type=int, default=7)
+                        type=int, default=12)
     parser.add_argument("--dandiset_ID", help="dandiset ID", type=str,
                         default="000140")
     parser.add_argument("--epoch_event_name", help="epoch event name",
@@ -231,74 +231,80 @@ def main(argv):
         kernels_params=kernels_params0,
         ind_points_locs=Z0,
     )
-    optim_params = dict(
-        # maxiter=params["optim_params"]["em_max_iter"],
-        maxiter=10000,
-        tol=1e-6,
-        max_stepsize=1.0,
-        jit=True,
-        # verbose=True,
-    )
-    optim_params_ECM = dict(
-        n_em_iterations=50,
-        tol = 1e-4,
-        variational_estimate=True,
-        variational_params=dict(
-            jit=True,
-            tol=1e-2,
-            # options={"gtol": 1e-10, "maxcor": 100},
-            maxiter=100,
-            # maxls=20,
-            max_stepsize=0.1,
-            history_size=100,
-        ),
-        preIntensity_estimate=True,
-        preIntensity_params=dict(
-            jit=True,
-            tol=1e-2,
-            # options={"gtol": 1e-10, "maxcor": 100},
-            maxiter=100,
-            # maxls=20,
-            max_stepsize=0.01,
-            history_size=100,
-        ),
-        kernels_estimate=True,
-        kernels_params=dict(
-            jit=True,
-            tol=1e-2,
-            # options={"gtol": 1e-10, "maxcor": 100},
-            maxiter=100,
-            # maxls=20,
-            max_stepsize=0.1,
-            history_size=100,
-        ),
-        indpointslocs_estimate=True,
-        indpointslocs_params=dict(
-            jit=True,
-            tol=1e-2,
-            # options={"gtol": 1e-10, "maxcor": 100},
-            maxiter=100,
-            # maxls=20,
-            max_stepsize=0.1,
-            history_size=100,
-        ),
-    )
-
-    start_time = time.time()
-    # res = em.maximize(params0=params0, optim_params=optim_params)
-    res = em.maximizeInSteps(params0=params0, optim_params=optim_params)
-    # res = em.maximize_jaxopt_scipy(params0=params0, optim_params=optim_params)
-    # res = em.maximizeECM(params0=params0, optim_params=optim_params_ECM)
-    elapsed_time = time.time() - start_time
+    if params["optim_params"]["optim_method"] == "ECM":
+        optim_params = dict(
+            n_em_iterations=params["optim_params"]["em_maxiter"],
+            em_tol=params["optim_params"]["em_tol"],
+            variational_estimate=params["optim_params"]["estep_estimate"],
+            variational_params=dict(
+                jit=params["optim_params"]["estep_jit"],
+                tol=params["optim_params"]["estep_tol"],
+                maxiter=params["optim_params"]["estep_maxiter"],
+                max_stepsize=params["optim_params"]["estep_max_stepsize"],
+                history_size=params["optim_params"]["estep_history_size"],
+            ),
+            preIntensity_estimate=params["optim_params"]["mstep_preIntensity_estimate"],
+            preIntensity_params=dict(
+                jit=params["optim_params"]["mstep_preIntensity_jit"],
+                tol=params["optim_params"]["mstep_preIntensity_tol"],
+                maxiter=params["optim_params"]["mstep_preIntensity_maxiter"],
+                max_stepsize=params["optim_params"]["mstep_preIntensity_max_stepsize"],
+                history_size=params["optim_params"]["mstep_preIntensity_history_size"],
+            ),
+            kernels_estimate=params["optim_params"]["mstep_kernels_estimate"],
+            kernels_params=dict(
+                jit=params["optim_params"]["mstep_kernels_jit"],
+                tol=params["optim_params"]["mstep_kernels_tol"],
+                maxiter=params["optim_params"]["mstep_kernels_maxiter"],
+                max_stepsize=params["optim_params"]["mstep_kernels_max_stepsize"],
+                history_size=params["optim_params"]["mstep_kernels_history_size"],
+            ),
+            indpointslocs_estimate=params["optim_params"]["mstep_indpointslocs_estimate"],
+            indpointslocs_params=dict(
+                jit=params["optim_params"]["mstep_indpointslocs_jit"],
+                tol=params["optim_params"]["mstep_indpointslocs_tol"],
+                maxiter=params["optim_params"]["mstep_indpointslocs_maxiter"],
+                max_stepsize=params["optim_params"]["mstep_indpointslocs_max_stepsize"],
+                history_size=params["optim_params"]["mstep_indpointslocs_history_size"],
+            ),
+        )
+        start_time = time.time()
+        res = em.maximize_jaxopt_LBFGS_ECM(params0=params0, optim_params=optim_params)
+        elapsed_time = time.time() - start_time
+    elif params["optim_params"]["optim_method"] == "in_steps":
+        optim_params = dict(
+            jit=params["optim_params"]["in_steps_jit"],
+            maxiter=params["optim_params"]["in_steps_maxiter"],
+            tol=params["optim_params"]["in_steps_tol"],
+            max_stepsize=params["optim_params"]["in_steps_max_setpsize"],
+        )
+        start_time = time.time()
+        res = em.maximize_jaxopt_LBFGS_in_steps(params0=params0, optim_params=optim_params)
+        elapsed_time = time.time() - start_time
+    elif params["optim_params"]["optim_method"] == "one_call":
+        optim_params = dict(
+            jit=bool(est_init_config["optim_params"]["one_call_jit"]),
+            maxiter=int(est_init_config["optim_params"]["one_call_max_iter"]),
+            tol=float(est_init_config["optim_params"]["one_call_tol"]),
+            max_stepsize=float(est_init_config["optim_params"]["one_call_max_stepsize"]),
+        )
+        start_time = time.time()
+        params, state = em.maximize_jaxopt_LBFGS_one_call(params0=params0, optim_params=optim_params)
+        elapsed_time = time.time() - start_time
+        print(f"Lower bound: {-state.value.item()}")
+        res = {"params": params, "state": state, "elapsed_time": elapsed_time}
+    else:
+        raise ValueError('invalid optim_method={params["optim_params"]["optim_method"]}')
     print(f"elapsed time={elapsed_time}")
 
     resultsToSave = res
     resultsToSave["estimated_params"] = resultsToSave.pop("params")
     resultsToSave["trials_ids"] = trials_ids
     resultsToSave["neurons_indices"] = neurons_indices,
-    resultsToSave["clusters_ids"] = selected_clusters_ids,
+    resultsToSave["clusters_ids"] = selected_clusters_ids
     resultsToSave["kernels_types"] = kernels_types
     resultsToSave["estimation_params"] = params
+    resultsToSave["ooptim_params"] = optim_params
 
     with open(modelSaveFilename, "wb") as f:
         pickle.dump(resultsToSave, f)
