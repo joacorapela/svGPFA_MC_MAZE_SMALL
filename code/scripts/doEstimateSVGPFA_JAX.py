@@ -1,5 +1,5 @@
 import sys
-import os
+import os.path
 import time
 import random
 import jax
@@ -25,16 +25,16 @@ def main(argv):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--est_init_number", help="estimation init number",
-                        type=int, default=12)
+                        type=int, default=15)
     parser.add_argument("--dandiset_ID", help="dandiset ID", type=str,
                         default="000140")
     parser.add_argument("--epoch_event_name", help="epoch event name",
                         type=str, default="move_onset_time")
     parser.add_argument("--n_latents", help="number of latent processes",
-                        type=int, default=5)
+                        type=int, default=20)
     parser.add_argument("--common_n_ind_points",
                         help="common number of inducing points",
-                        type=int, default=8)
+                        type=int, default=50)
     parser.add_argument("--profile",
                         help="use this option if you want to profile svGPFA.maximize()",
                         action="store_true")
@@ -53,9 +53,9 @@ def main(argv):
                         help="profiling information filename pattern",
                         type=str,
                         default="../../results/{:08d}_profiling_info.txt")
-    parser.add_argument("--trials_ids_filename", help="trials ids filename",
+    parser.add_argument("--trials_filename", help="trials ids filename",
                         type=str, default="../../init/trialsIDs_0_99.csv")
-    parser.add_argument("--clusters_ids_filename", help="clusters ids filename",
+    parser.add_argument("--clusters_filename", help="clusters ids filename",
                         type=str, default="../../init/clustersIDs_0_141.csv")
     parser.add_argument("--model_save_filename_pattern",
                         help="model save filename pattern",
@@ -79,8 +79,8 @@ def main(argv):
     estim_res_metadata_filename_pattern = \
         args.estim_res_metadata_filename_pattern
     profiling_info_filename_pattern = args.profiling_info_filename_pattern
-    trials_ids_filename = args.trials_ids_filename
-    clusters_ids_filename = args.clusters_ids_filename
+    trials_filename = args.trials_filename
+    clusters_filename = args.clusters_filename
     model_save_filename_pattern = args.model_save_filename_pattern
 
     est_init_config_filename = est_init_config_filename_pattern.format(
@@ -88,7 +88,7 @@ def main(argv):
     est_init_config = configparser.ConfigParser()
     est_init_config.read(est_init_config_filename)
 
-    min_neuron_trials_avg_firing_rate = float(est_init_config["data_params"]["min_neuron_trials_avg_firing_rate"])
+    min_cluster_trials_avg_firing_rate = float(est_init_config["data_params"]["min_cluster_trials_avg_firing_rate"])
 
     # get spike_times
     epoched_spikes_times_filename = \
@@ -102,45 +102,45 @@ def main(argv):
     trials_end_times = load_res["trials_end_times"]
 
     n_trials = len(spikes_times)
-    n_neurons = len(spikes_times[0])
-    trials_ids = jnp.arange(n_trials)
+    n_clusters = len(spikes_times[0])
+    trials = jnp.arange(n_trials)
 
-    # subset selected_clusters_ids
-    selected_clusters_ids = np.genfromtxt(clusters_ids_filename,
+    # subset selected_clusters
+    selected_clusters = np.genfromtxt(clusters_filename,
                                           dtype=np.uint64)
-    clusters_ids = np.arange(n_neurons)
-    spikes_times = mcMazeUtils.subset_clusters_ids_data(
-        selected_clusters_ids=selected_clusters_ids,
-        clusters_ids=clusters_ids,
+    clusters = np.arange(n_clusters)
+    spikes_times = mcMazeUtils.subset_clusters_data(
+        selected_clusters=selected_clusters,
+        clusters=clusters,
         spikes_times=spikes_times,
     )
 
-    # subset selected_trials_ids
-    selected_trials_ids = np.genfromtxt(trials_ids_filename, dtype=np.uint64)
+    # subset selected_trials
+    selected_trials = np.genfromtxt(trials_filename, dtype=np.uint64)
     spikes_times, trials_start_times, trials_end_times = \
-        mcMazeUtils.subset_trials_ids_data(
-            selected_trials_ids=selected_trials_ids,
-            trials_ids=trials_ids,
+        mcMazeUtils.subset_trials_data(
+            selected_trials=selected_trials,
+            trials=trials,
             spikes_times=spikes_times,
             trials_start_times=trials_start_times,
             trials_end_times=trials_end_times)
 
     n_trials = len(spikes_times)
     # trials_indices = np.arange(n_trials)
-    n_neurons = len(spikes_times[0])
-    neurons_indices = jnp.arange(n_neurons).tolist()
+    n_clusters = len(spikes_times[0])
+    clusters_indices = jnp.arange(n_clusters).tolist()
 
     trials_durations = [trials_end_times[i] - trials_start_times[i]
                         for i in range(n_trials)]
-    spikes_times, neurons_indices = \
+    spikes_times, clusters_indices = \
         gcnu_common.utils.neural_data_analysis.removeUnitsWithLessTrialAveragedFiringRateThanThr(
-            spikes_times=spikes_times, neurons_indices=neurons_indices,
+            spikes_times=spikes_times, clusters_indices=clusters_indices,
             trials_durations=trials_durations,
-            min_neuron_trials_avg_firing_rate=min_neuron_trials_avg_firing_rate)
-    clusters_ids = [clusters_ids[i] for i in neurons_indices]
+            min_cluster_trials_avg_firing_rate=min_cluster_trials_avg_firing_rate)
+    clusters = [clusters[i] for i in clusters_indices]
 
     n_trials = len(spikes_times)
-    n_neurons = len(spikes_times[0])
+    n_clusters = len(spikes_times[0])
 
     # breakpoint()
 
@@ -158,13 +158,13 @@ def main(argv):
             strings_dict=strings_dict, args_info=args_info)
     #    build default parameter specificiations
     default_params_spec = svGPFA.utils.initUtils.getDefaultParamsDict(
-        n_neurons=n_neurons, n_trials=n_trials, n_latents=n_latents,
+        n_clusters=n_clusters, n_trials=n_trials, n_latents=n_latents,
         common_n_ind_points=common_n_ind_points)
     #    finally, get the parameters from the dynamic,
     #    configuration file and default parameter specifications
     params, kernels_types = \
         svGPFA.utils.initUtils.getParamsAndKernelsTypes(
-            n_trials=n_trials, n_neurons=n_neurons, n_latents=n_latents,
+            n_trials=n_trials, n_clusters=n_clusters, n_latents=n_latents,
             trials_start_times=trials_start_times,
             trials_end_times=trials_end_times,
             dynamic_params_spec=dynamic_params_spec,
@@ -191,8 +191,20 @@ def main(argv):
     kernels = svGPFA.utils.miscUtils.buildKernels(
         kernels_types=kernels_types, kernels_params=kernels_params0)
 
+    # build spikes_times_array
     spikes_times_array, valid_spikes_times_mask = \
         svGPFA.utils.miscUtils.buildSpikesTimesArray(spikes_times=spikes_times)
+
+    """
+    # begin tmp
+    data_to_save = {"spikes_times": spikes_times,
+                    "spikes_times_array": spikes_times_array,
+                    "valid_spikes_times_mask": valid_spikes_times_mask}
+    with open("../../results/spike_times_data.pickle", "wb") as f:
+        pickle.dump(data_to_save, f)
+    breakpoint()
+    # end tmp
+    """
 
     leg_quad_weights = params["ell_calculation_params"]["leg_quad_weights"]
     leg_quad_points = params["ell_calculation_params"]["leg_quad_points"]
@@ -208,11 +220,16 @@ def main(argv):
         "nLatents": n_latents,
         "common_n_ind_points": common_n_ind_points,
         # "max_trial_duration": max_trial_duration,
-        "min_neuron_trials_avg_firing_rate": min_neuron_trials_avg_firing_rate,
+        "min_cluster_trials_avg_firing_rate": min_cluster_trials_avg_firing_rate,
+        "dandiset_ID": dandiset_ID,
         "epoched_spikes_times_filename": epoched_spikes_times_filename,
+        "clusters": clusters,
+        "clusters_indices": clusters_indices,
+        "trials": selected_trials,
     }
     estim_res_config["estimation_params"] = {"est_init_number":
                                              est_init_number}
+    estim_res_config["params"] = params
     with open(estim_res_metadata_filename, "w") as f:
         estim_res_config.write(f)
     print(f"Saved {estim_res_metadata_filename}")
@@ -273,10 +290,10 @@ def main(argv):
         elapsed_time = time.time() - start_time
     elif params["optim_params"]["optim_method"] == "in_steps":
         optim_params = dict(
-            jit=params["optim_params"]["in_steps_jit"],
-            maxiter=params["optim_params"]["in_steps_maxiter"],
-            tol=params["optim_params"]["in_steps_tol"],
-            max_stepsize=params["optim_params"]["in_steps_max_setpsize"],
+            jit=bool(est_init_config["optim_params"]["in_steps_jit"]),
+            maxiter=int(est_init_config["optim_params"]["in_steps_maxiter"]),
+            tol=float(est_init_config["optim_params"]["in_steps_tol"]),
+            max_stepsize=float(est_init_config["optim_params"]["in_steps_max_stepsize"]),
         )
         start_time = time.time()
         res = em.maximize_jaxopt_LBFGS_in_steps(params0=params0, optim_params=optim_params)
@@ -299,12 +316,12 @@ def main(argv):
 
     resultsToSave = res
     resultsToSave["estimated_params"] = resultsToSave.pop("params")
-    resultsToSave["trials_ids"] = trials_ids
-    resultsToSave["neurons_indices"] = neurons_indices,
-    resultsToSave["clusters_ids"] = selected_clusters_ids
+    resultsToSave["trials"] = selected_trials
+    resultsToSave["clusters_indices"] = clusters_indices,
+    resultsToSave["clusters"] = clusters
     resultsToSave["kernels_types"] = kernels_types
     resultsToSave["estimation_params"] = params
-    resultsToSave["ooptim_params"] = optim_params
+    resultsToSave["optim_params"] = optim_params
 
     with open(modelSaveFilename, "wb") as f:
         pickle.dump(resultsToSave, f)
