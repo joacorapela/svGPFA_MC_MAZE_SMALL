@@ -16,7 +16,7 @@ import gcnu_common.stats.discrimination
 import svGPFA.utils.miscUtils
 import svGPFA.utils.statsUtils
 import svGPFA.plot.plotUtilsPlotly
-import utils
+import mcMazeUtils
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -61,9 +61,9 @@ def main(argv):
         nwbfile = io.read()
         trials_df = nwbfile.intervals["trials"].to_dataframe()
 
-    trials_categories = utils.get_trials_categories(trials_df=trials_df)
+    trials_categories = mcMazeUtils.get_trials_categories(trials_df=trials_df)
 
-    trials_colors_patterns = utils.get_trials_colors_patterns(
+    trials_colors_patterns = mcMazeUtils.get_trials_colors_patterns(
         trials_categories=trials_categories)
     trials_colors = [trial_color_pattern.format(1.0)
                      for trial_color_pattern in trials_colors_patterns]
@@ -151,7 +151,7 @@ def main(argv):
                              for trial_id in trials_ids])
 
     marked_events_times, marked_events_colors, marked_events_markers = \
-        utils.buildMarkedEventsInfo(events_times=events_times,
+        mcMazeUtils.buildMarkedEventsInfo(events_times=events_times,
                                     events_colors=events_colors,
                                     events_markers=events_markers)
 
@@ -170,14 +170,14 @@ def main(argv):
 
     lda_start_time = 0.0
     lda_duration = 0.20
-    latent_to_plot = 1
+    latent_to_plot = 2
     histProj_fig_filename_pattern = \
             "../../figures/{:08d}_histProjectionsLatentsOntoDiscriminatoryDir{:02d}From{:.02f}Duration{:.03f}_JR.{:s}"
     latents_fig_filename_pattern = "../../figures/{:08d}_ldaLatent{:03d}_JR.{{:s}}".format(estResNumber, latent_to_plot)
 
     # X: list of length n_categories
     # X[i] \in n_latents \times (n_selected_times * n_trials_in_category_i)
-    X = utils.getLDAsamples(times=times, latents_means=l_means,
+    X = mcMazeUtils.getLDAsamples(times=times, latents_means=l_means,
                             start_time=lda_start_time,
                             duration=lda_duration,
                             trials_categories=trials_categories,
@@ -215,7 +215,7 @@ def main(argv):
 
     n_categories = len(X)
     projs = [None] * n_categories
-    categories_color_patternss = utils.get_categories_color_patterns()
+    categories_color_patternss = mcMazeUtils.get_categories_color_patterns()
     for i in range(n_categories):
         # projs[i] \in (n_times_points[r] * n_latents) \times n_components
         projs[i] = X[i].T @ discr_dirs
