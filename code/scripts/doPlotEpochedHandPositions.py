@@ -47,7 +47,9 @@ def main(argv):
     marker_symbol_inactive = "circle"
     marker_color_inactive = "gray"
 
-    trace_color_patterns = utils.get_trials_color_patterns(trials_df=trials_df)
+    trials_categories = utils.get_trials_categories(trials_df=trials_df)
+    trace_color_patterns = utils.get_trials_color_patterns(
+        trials_categories=trials_categories)
 
     fig = go.Figure()
     hand_pos_list = load_res["hand_pos_list"]
