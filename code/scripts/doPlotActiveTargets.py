@@ -12,10 +12,9 @@ def main(argv):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--dandiset_ID", help="dandiset ID", type=str,
-                        default="000128")
-                        # default="000140")
-    parser.add_argument("--filepath", help="dandi filepath", type=str,
-                        default="../../data/000140/sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
+                        default="000140")
+    parser.add_argument("--filepath_pattern", help="dandi filepath pattern", type=str,
+                        default="../../data/{:s}/sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
     parser.add_argument("--epoch_event_name", help="epoch event name",
                         type=str, default="move_onset_time")
     parser.add_argument("--epoched_hand_pos_filename_pattern",
@@ -27,11 +26,12 @@ def main(argv):
     args = parser.parse_args()
 
     dandiset_ID = args.dandiset_ID
-    filepath = args.filepath
+    filepath_pattern = args.filepath_pattern
     epoch_event_name = args.epoch_event_name
     epoched_hand_pos_filename_pattern = args.epoched_hand_pos_filename_pattern
     fig_filename_pattern = args.fig_filename_pattern
 
+    filepath = filepath_pattern.format(dandiset_ID)
     with NWBHDF5IO(filepath, 'r') as io:
         nwbfile = io.read()
         trials_df = nwbfile.intervals["trials"].to_dataframe()
