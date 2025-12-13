@@ -18,7 +18,6 @@ def main(argv):
                         default="000140")
     parser.add_argument("--filepath", help="dandi filepath", type=str,
                         default="../../data/000140/sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
-                        # default="sub-Jenkins/sub-Jenkins_ses-small_desc-train_behavior+ecephys.nwb")
     parser.add_argument("--epoch_event_name", help="epoch event name",
                         type=str, default="move_onset_time")
     parser.add_argument("--epoched_spikes_times_filename_pattern",
@@ -45,15 +44,14 @@ def main(argv):
         units_df = nwbfile.units.to_dataframe()
         trials_df = nwbfile.intervals["trials"].to_dataframe()
 
-
-    # n_neurons
-    n_neurons = units_df.shape[0]
+    # n_clusters
+    n_clusters = units_df.shape[0]
 
     # continuous spikes times
-    continuous_spikes_times = [None for n in range(n_neurons)]
-    units_ids = [None for n in range(n_neurons)]
-    units_locs = [None for n in range(n_neurons)]
-    for n in range(n_neurons):
+    continuous_spikes_times = [None for n in range(n_clusters)]
+    units_ids = [None for n in range(n_clusters)]
+    units_locs = [None for n in range(n_clusters)]
+    for n in range(n_clusters):
         units_ids[n] = units_df.index[n]
         units_locs[n] = units_df.iloc[n].electrodes['location']
         continuous_spikes_times[n] = units_df.iloc[n]['spike_times']
@@ -67,7 +65,7 @@ def main(argv):
     epochs_times = [None for r in range(n_trials)]
     trials_start_times = [None for r in range(n_trials)]
     trials_end_times = [None for r in range(n_trials)]
-    spikes_times = [[None for n in range(n_neurons)] for r in range(n_trials)]
+    spikes_times = [[None for n in range(n_clusters)] for r in range(n_trials)]
     for r in range(n_trials):
         epoch_start_time = trials_df.iloc[r]["start_time"]
         epoch_end_time = trials_df.iloc[r]["stop_time"]
@@ -75,13 +73,13 @@ def main(argv):
         epochs_times[r] = epoch_time
         trials_start_times[r] = epoch_start_time - epoch_time
         trials_end_times[r] = epoch_end_time - epoch_time
-        for n in range(n_neurons):
+        for n in range(n_clusters):
             spikes_times[r][n] = (continuous_spikes_times[n][
                 np.logical_and(epoch_start_time <= continuous_spikes_times[n],
                                continuous_spikes_times[n] <= epoch_end_time)] -
                 epoch_time)
 
-    results_to_save = {"neurons": units_ids,
+    results_to_save = {"clusters": units_ids,
                        "region": units_locs,
                        "epochs_times": epochs_times,
                        "spikes_times": spikes_times,
