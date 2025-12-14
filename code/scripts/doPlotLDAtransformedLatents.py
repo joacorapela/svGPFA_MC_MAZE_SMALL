@@ -211,8 +211,6 @@ def main(argv):
     # discr_dirs \in n_latents \times n_components
     discr_dirs, discr_evals = gcnu_common.stats.discrimination.discriminativeLDA(X)
 
-    breakpoint()
-
     discr_dirs = gcnu_common.numerical_methods.gram_schmidt(discr_dirs)
     # lda_l_means \in  n_trials \times n_times \times n_components
     # lda_l_vars  \in  n_trials \times n_times \times n_components
