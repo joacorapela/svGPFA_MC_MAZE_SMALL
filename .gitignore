@@ -8,6 +8,13 @@ figures/*
 init/*
 results/*
 docs/*
+!docs/reports/
+docs/reports/*
+!docs/reports/ldaLatents/
+docs/reports/ldaLatents/*
+!docs/reports/ldaLatents/Makefile
+!docs/reports/ldaLatents/signalProcessing.bib
+!docs/reports/ldaLatents/report30190367.tex
 code/scripts/old/*
 toRsync
 fromRsync
