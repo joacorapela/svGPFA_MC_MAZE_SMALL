@@ -1,0 +1,189 @@
+\documentclass[12pt]{article}
+
+\usepackage{graphicx}
+\usepackage{verbatim}
+\usepackage[colorlinks=true]{hyperref}
+\usepackage{tikz} % for \foreach
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage[natbibapa]{apacite}
+
+\def\estNumber{30190367}
+\def\clustersToPlot{000,001,002,003,004,010,013,014,025}
+\def\latentsToPlot{000,001,002,003,004}
+
+\title{svGPFA analysis \texttt{\estNumber} of MC\_MAZE\_SMALL with LDA latents}
+\author{Joaquin Rapela}
+
+\begin{document}
+
+\maketitle
+
+\begin{description}
+    \item[number of latents:] 15
+    \item[number of inducing points:] 20
+    \item[number of trials:] 100
+    \item[number of clusters:] 142
+\end{description}
+
+\section{Behavioral data}
+
+Figure~\ref{fig:behavioralData} plots the behavioral data. In every trial
+monkeys reach to one of the nine target locations.
+
+\begin{figure}
+    \centering
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/00000000_dandisetID000128_epochedEventmove_onset_time_epochedHandPos.html}{\includegraphics[width=5in]{../../../figures/00000000_dandisetID000128_epochedEventmove_onset_time_epochedHandPos.png}}
+    \caption{Hand reaching behavior of a monkey. Each trace correspond to a
+    different trial. Trials are colored by target location. There are nine
+    target locations, three to the upper left quadrants, and two to the other
+    quadrants. Click on the figure
+    to get its interactive version.}
+    \label{fig:behavioralData}
+\end{figure}
+
+\section{Data for LDA}
+
+We provided LDA a matrix of data, $X\in\mathbb{R}^{L\times N}$, and a vector of
+labels, $\mathbf{y}\in\mathbf{R}^N$. The matrix of data $X$ contains all 15
+latents, of all trials, from a 200~ms segment starting at movement onset. A
+column of $X$ contains the value of the 15 latents corresponding to one sample
+time point of one trial; thus $L=15$. The number of columns of $X$ is the
+number of trials times the number of sample points in the 200~ms
+segment. The length of $\mathbf{y}$ is the same as the number of columns of
+$X$, and the value of $y[i]$ is the target location corresponding to the trial
+of the ith column of $X$.
+
+\section{Methods}
+\label{sec:methods}
+
+Our implementation of LDA estimated eight (number of target locations minus
+one) non-orthogonal directions that maximize a criterion of separability,
+$J_1(A)$, of the projected data $Y$, where $Y=AX$, $J_1(A)=\text{Trace}(S_b\
+S_w^{-1})$, and $S_b, S_w$ and the between and within group scatter matrices of
+Y.
+Custom code implementing LDA can be found
+\href{https://github.com/joacorapela/svGPFA_MC_MAZE_SMALL/blob/d9b356b179f5e5f27e63437022a55a905b82b099/code/scripts/doPlotLDAtransformedLatents_JR.py}{here}.
+Our LDA implementation produced almost identical results as the
+\href{https://github.com/joacorapela/svGPFA_MC_MAZE_SMALL/blob/d9b356b179f5e5f27e63437022a55a905b82b099/code/scripts/doPlotLDAtransformedLatents_scikitLearn.py}{scikit-learn}
+one.
+
+The rows of matrix $A$ span the LDA space of dimension number of reach targets
+minus one. We orthonormalized this space and projected the estimated latents on
+the orthonormalized space.
+
+\section{Results}
+
+\subsection{First discriminatory direction separates left from right trials}
+
+Figure~\ref{fig:histProjectionsOnDiscriminatoryDir0} plots histograms of projections of
+columns of $X$ onto the first discriminatory directions obtained from LDA.
+There are nine histograms, as many of reaching directions. The histogram for
+the ith reaching direction contains projections of all columns of $X$
+corresponding to trials where the subject reached to the ith direction. The
+color of the histogram corresponds to the color of the reaching direction in
+Figure~\ref{fig:behavioralData}.
+%
+The title of the figure shows the eigenvalue corresponding to this
+discriminatory direction, which indicates the contribution of this direction to
+the optimized separability criterion $J_1(A)$ (Section~\ref{sec:methods}).
+$J_1(A)=\text{Trace}(S_b\
+S_w^{-1})=\text{eigval}_1+\text{eigval}_2+\cdots+\text{eigval}_{\text{nTargetLocs}-1}$
+\citep[][Eq.~10.19]{fukunaga90}.
+%
+This discriminatory direction separates well right (red and green,
+Figure~\ref{fig:behavioralData}) from left (blue and yellow,
+Figure~\ref{fig:behavioralData}) trials.
+
+\begin{figure}
+    \centering
+
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_histProjectionsLatentsOntoDiscriminatoryDir00From0.00Duration0.200.html}{\includegraphics[width=5in]{../../../figures/30190367_histProjectionsLatentsOntoDiscriminatoryDir00From0.00Duration0.200.png}}
+
+    \caption{Histograms of projections onto the first LDA direction. Different
+    histograms correspond to the different reach target locations show in
+    Figure~\ref{fig:behavioralData}.  This LDA direction separates right (red
+    and green) from left (blue and yellow) trials. Click on the figure to get
+    its interactive version.}
+
+ \label{fig:histProjectionsOnDiscriminatoryDir0}
+
+\end{figure}
+
+Also, latents corresponding to right and left trials are well separated in the
+0.0-0.2 time interval when projected onto the first dimension of the
+orthonormlised LDA space (see Section~\ref{sec:methods}), as show in
+Figure~\ref{fig:latentsProjectedOntoLDA0}.
+
+\begin{figure}
+    \centering
+
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_ldaLatent000.html}{\includegraphics[width=5in]{../../../figures/30190367_ldaLatent000_lightBlueVsLightRed.png}}
+
+    \caption{Latents projected onto the first direction of the orthonormalized
+    LDA space. For clarity, the static image on this report displays only
+    latents corresponding to trials where the target was on the top-right and
+    top left. The interactive version of this image shows all latents. Click on
+    the figure to get its interactive version.}
+
+ \label{fig:latentsProjectedOntoLDA0}
+
+\end{figure}
+
+\subsection{Second discriminatory direction separates left from right trials}
+
+Figure~\ref{fig:histProjectionsOnDiscriminatoryDir1} plots histograms of projections of
+columns of $X$ onto the second discriminatory directions obtained from LDA.
+Note that the eigenvalue corresponding to this discriminatory direction is
+almost 80\% smaller than that for the first discriminatory direction,
+indicating that this direction contributes almost 80\% less to the
+discriminatory criterion $J_1(A)$.
+%
+This discriminatory direction separates top (red and blue,
+Figure~\ref{fig:behavioralData}) from bottom (green and yellow,
+Figure~\ref{fig:behavioralData}) trials. However, this separation is weaker
+than that with the first discriminative direction
+(Figure~\ref{fig:histProjectionsOnDiscriminatoryDir0}).
+
+\begin{figure}
+    \centering
+
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_histProjectionsLatentsOntoDiscriminatoryDir01From0.00Duration0.200.html}{\includegraphics[width=5in]{../../../figures/30190367_histProjectionsLatentsOntoDiscriminatoryDir01From0.00Duration0.200.png}}
+
+    \caption{Histograms of projections onto the second LDA direction. Same
+    format as in Figure~\ref{fig:histProjectionsOnDiscriminatoryDir0}.
+    This LDA direction separates top (red
+    and blue) from bottom (green and yellow) trials. Click on the figure to get
+    its interactive version.}
+
+ \label{fig:histProjectionsOnDiscriminatoryDir1}
+
+\end{figure}
+
+Also, latents corresponding to top and bottom trials are well separated in the
+0.0-0.2 time interval when projected onto the second dimension of the
+orthonormlised LDA space (see Section~\ref{sec:methods}), as show in
+Figure~\ref{fig:latentsProjectedOntoLDA1}. However, this separation is weaker
+than that in Figure~\ref{fig:latentsProjectedOntoLDA0}. 
+
+\begin{figure}
+    \centering
+
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_ldaLatent001.html}{\includegraphics[width=5in]{../../../figures/30190367_ldaLatent001_darkYellowVsLightBlue.png}}
+
+    \caption{Latents projected onto the second direction of the orthonormalized
+    LDA space. For clarity, the static image on this report displays only
+    latents corresponding to trials where the target was on the top-left and
+    bottom-left. The interactive version of this image shows all latents. Click on
+    the figure to get its interactive version.}
+
+ \label{fig:latentsProjectedOntoLDA1}
+
+\end{figure}
+
+\listoffigures
+
+\bibliographystyle{apacite}
+\bibliography{signalProcessing}
+
+\end{document}
