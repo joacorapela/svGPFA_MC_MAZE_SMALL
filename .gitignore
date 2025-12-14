@@ -9,3 +9,5 @@ init/*
 results/*
 docs/*
 code/scripts/old/*
+toRsync
+fromRsync
