@@ -15,6 +15,7 @@ docs/reports/ldaLatents/*
 !docs/reports/ldaLatents/Makefile
 !docs/reports/ldaLatents/signalProcessing.bib
 !docs/reports/ldaLatents/report30190367.tex
+!docs/reports/ldaLatents/report30190367.pdf
 code/scripts/old/*
 toRsync
 fromRsync
