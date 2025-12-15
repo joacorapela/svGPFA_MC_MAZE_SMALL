@@ -1,7 +1,6 @@
 
 
 import sys
-import warnings
 import configparser
 import numpy as np
 import jax
@@ -11,27 +10,13 @@ import argparse
 from pynwb import NWBHDF5IO
 import plotly.graph_objects as go
 
-# import gcnu_common.stats.discrimination
 import gcnu_common.numerical_methods
 import gcnu_common.stats.discrimination
-import svGPFA.utils.miscUtils
 import svGPFA.utils.statsUtils
 import svGPFA.plot.plotUtilsPlotly
 import mcMazeUtils
 
 def main(argv):
-    # Let's not use GPU for plotting
-    cpu_devices = jax.devices('cpu')
-
-    if not cpu_devices:
-        # This should never happen, but good practice
-        print("Error: No CPU device found!")
-    else:
-        # Set the default device to the first CPU
-        jax.default_device(cpu_devices[0])
-        print(f"JAX is initialized using the default device: {jax.default_device()}")
-
-
     parser = argparse.ArgumentParser()
     parser.add_argument("estResNumber", help="estimation result number", type=int)
     parser.add_argument("--filepath", help="dandi filepath", type=str,
@@ -42,7 +27,6 @@ def main(argv):
     parser.add_argument("--lda_duration",
                         help="segment duration (in sec) for LDA calculation",
                         type=int, default=0.20)
-    parser.add_argument("--latent_to_plot", help="trial to plot", type=int, default=2)
     parser.add_argument("--align_event_name",
                         help="name of event used for alignment",
                         type=str,
@@ -74,7 +58,7 @@ def main(argv):
                         help=("filename pattern where to save the latents "
                               "figure"),
                         type=str,
-                        default="../../figures/{:08d}_ldaLatent{:03d}_mean.{{:s}}")
+                        default="../../figures/{:08d}_ldaLatent{{:03d}}_mean.{{:s}}")
     args = parser.parse_args()
 
 
@@ -82,7 +66,6 @@ def main(argv):
     filepath = args.filepath
     lda_start_time = args.lda_start_time
     lda_duration = args.lda_duration
-    latent_to_plot = args.latent_to_plot
     align_event_name = args.align_event_name
     events_names = [str for str in args.events_names[1:-1].split(",")]
     events_colors = [str for str in args.events_colors[1:-1].split(",")]
@@ -90,7 +73,7 @@ def main(argv):
     model_metadata_filename = args.model_metadata_filename_pattern.format(estResNumber)
     model_save_filename = args.model_save_filename_pattern.format(estResNumber)
     histProj_fig_filename_pattern = args.histProj_fig_filename_pattern
-    latents_fig_filename_pattern = args.latents_fig_filename_pattern.format(estResNumber, latent_to_plot)
+    latents_fig_filename_pattern = args.latents_fig_filename_pattern.format(estResNumber)
 
     with NWBHDF5IO(filepath, 'r') as io:
         nwbfile = io.read()
@@ -165,29 +148,34 @@ def main(argv):
     # lda_l_means \in  n_trials \times n_times \times n_components
     lda_l_means = l_means @ discr_dirs
 
-    fig = svGPFA.plot.plotUtilsPlotly.getPlotLatentMeanAcrossTrials(
-        times=times,
-        latentsMeans=lda_l_means,
-        latentToPlot=latent_to_plot,
-        trials_ids=trials_ids,
-        align_event_times=align_event_times,
-        events_names=events_names,
-        marked_events_times=marked_events_times,
-        marked_events_colors=marked_events_colors,
-        marked_events_markers=marked_events_markers,
-        trials_colors_patterns=trials_colors_patterns,
-        xlabel="Time (sec)")
-    fig.write_image(latents_fig_filename_pattern.format("png"))
-    fig.write_html(latents_fig_filename_pattern.format("html"))
-
     n_categories = len(X)
+    n_components = n_categories - 1
+
+    # plot latents
+    for latent_to_plot in range(n_components):
+        fig = svGPFA.plot.plotUtilsPlotly.getPlotLatentMeanAcrossTrials(
+            times=times,
+            latentsMeans=lda_l_means,
+            latentToPlot=latent_to_plot,
+            trials_ids=trials_ids,
+            align_event_times=align_event_times,
+            events_names=events_names,
+            marked_events_times=marked_events_times,
+            marked_events_colors=marked_events_colors,
+            marked_events_markers=marked_events_markers,
+            trials_colors_patterns=trials_colors_patterns,
+            xlabel="Time (sec)")
+        fig.write_image(latents_fig_filename_pattern.format(latent_to_plot, "png"))
+        fig.write_html(latents_fig_filename_pattern.format(latent_to_plot, "html"))
+
+    # calculate projection of latents into discr_dirs
     projs = [None] * n_categories
-    categories_color_patternss = mcMazeUtils.get_categories_color_patterns()
     for i in range(n_categories):
         # projs[i] \in (n_times_points[r] * n_latents) \times n_components
         projs[i] = X[i].T @ discr_dirs
 
-    n_components = n_categories - 1
+    # plot histograms of projections of latents into discr_dirs
+    categories_color_patternss = mcMazeUtils.get_categories_color_patterns()
     for j in range(n_components):
         fig = go.Figure()
         for i in range(n_categories):
