@@ -67,7 +67,7 @@ $J_1(A)$, of the projected data $Y$, where $Y=AX$, $J_1(A)=\text{Trace}(S_b\
 S_w^{-1})$, and $S_b, S_w$ and the between and within group scatter matrices of
 Y.
 Custom code implementing LDA can be found
-\href{https://github.com/joacorapela/svGPFA_MC_MAZE_SMALL/blob/d9b356b179f5e5f27e63437022a55a905b82b099/code/scripts/doPlotLDAtransformedLatents_JR.py}{here}.
+\href{https://github.com/joacorapela/svGPFA_MC_MAZE_SMALL/blob/d9b356b179f5e5f27e63437022a55a905b82b099/code/scripts/doPlotLDAtransformedLatents.py}{here}.
 Our LDA implementation produced almost identical results as the
 \href{https://github.com/joacorapela/svGPFA_MC_MAZE_SMALL/blob/d9b356b179f5e5f27e63437022a55a905b82b099/code/scripts/doPlotLDAtransformedLatents_scikitLearn.py}{scikit-learn}
 one.
@@ -122,13 +122,16 @@ Figure~\ref{fig:latentsProjectedOntoLDA0}.
 \begin{figure}
     \centering
 
-    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_ldaLatent000.html}{\includegraphics[width=5in]{../../../figures/30190367_ldaLatent000_lightBlueVsLightRed.png}}
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_ldaLatent000.html}{\includegraphics[width=5in]{../../../figures/30190367_ldaLatent000_mean.png}}
 
     \caption{Latents projected onto the first direction of the orthonormalized
-    LDA space. For clarity, the static image on this report displays only
-    latents corresponding to trials where the target was on the top-right and
-    top left. The interactive version of this image shows all latents. Click on
-    the figure to get its interactive version.}
+    LDA space.
+    %
+    Latents corresponding to trials where the target was on the left (blue and
+    yellow) are well separated in the interval 0.0-0.2~sec from those of trials
+    where the target was on the right (red and green).
+    %
+    Click on the figure to get its interactive version.}
 
  \label{fig:latentsProjectedOntoLDA0}
 
@@ -168,20 +171,77 @@ Also, latents corresponding to top and bottom trials are well separated in the
 0.0-0.2 time interval when projected onto the second dimension of the
 orthonormlised LDA space (see Section~\ref{sec:methods}), as show in
 Figure~\ref{fig:latentsProjectedOntoLDA1}. However, this separation is weaker
+than that in Figure~\ref{fig:latentsProjectedOntoLDA0}.
+
+\begin{figure}
+    \centering
+
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_ldaLatent001.html}{\includegraphics[width=5in]{../../../figures/30190367_ldaLatent001_mean.png}}
+
+    \caption{Latents projected onto the second direction of the orthonormalized
+    LDA space.
+    %
+    In the interval 0.0-0.2~sec, latents corresponding to top trials (red and
+    blue) are separated from those corresponding to bottom trials (yellow and
+    green), but to a lower degree than in
+    Figure~\ref{fig:latentsProjectedOntoLDA2}.
+    %
+    Click on the figure to get its interactive version.}
+
+ \label{fig:latentsProjectedOntoLDA1}
+
+\end{figure}
+
+\subsection{Third discriminatory direction separates reaches with positive and
+negative slope}
+
+Figure~\ref{fig:histProjectionsOnDiscriminatoryDir2} plots histograms of projections of
+columns of $X$ onto the third discriminatory directions obtained from LDA.
+The eigenvalue corresponding to this discriminatory direction is
+90\% smaller than that for the first discriminatory direction,
+indicating that this direction contributes 90\% less to the
+discriminatory criterion $J_1(A)$.
+%
+This discriminatory direction separates reaches with positive slopw (red and blue,
+Figure~\ref{fig:behavioralData}) from those with negative slope (green and yellow,
+Figure~\ref{fig:behavioralData}).
+
+\begin{figure}
+    \centering
+
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_histProjectionsLatentsOntoDiscriminatoryDir02From0.00Duration0.200.html}{\includegraphics[width=5in]{../../../figures/30190367_histProjectionsLatentsOntoDiscriminatoryDir02From0.00Duration0.200.png}}
+
+    \caption{Histograms of projections onto the second LDA direction. Same
+    format as in Figure~\ref{fig:histProjectionsOnDiscriminatoryDir0}.
+    This LDA direction separates reaches with positive (red
+    and yellow) and negative (blue and green) slopes. Click on the figure to get
+    its interactive version.}
+
+ \label{fig:histProjectionsOnDiscriminatoryDir2}
+
+\end{figure}
+
+Also, latents corresponding to top and bottom trials are well separated in the
+0.0-0.2 time interval when projected onto the second dimension of the
+orthonormlised LDA space (see Section~\ref{sec:methods}), as show in
+Figure~\ref{fig:latentsProjectedOntoLDA2}. However, this separation is weaker
 than that in Figure~\ref{fig:latentsProjectedOntoLDA0}. 
 
 \begin{figure}
     \centering
 
-    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_ldaLatent001.html}{\includegraphics[width=5in]{../../../figures/30190367_ldaLatent001_darkYellowVsLightBlue.png}}
+    \href{https://www.gatsby.ucl.ac.uk/~rapela/svGPFA/reports/mcMazeSmall/figures/30190367_ldaLatent002.html}{\includegraphics[width=5in]{../../../figures/30190367_ldaLatent002_mean.png}}
 
-    \caption{Latents projected onto the second direction of the orthonormalized
-    LDA space. For clarity, the static image on this report displays only
-    latents corresponding to trials where the target was on the top-left and
-    bottom-left. The interactive version of this image shows all latents. Click on
-    the figure to get its interactive version.}
+    \caption{Latents projected onto the third direction of the orthonormalized
+    LDA space.
+    %
+    In the 0.0-0.2~sec interval, latents corresponding to reaches with positive
+    slope (red and yellow) are separated from those corresponding to reaches
+    with negative slope (blue and green).
+    %
+    Click on the figure to get its interactive version.}
 
- \label{fig:latentsProjectedOntoLDA1}
+ \label{fig:latentsProjectedOntoLDA2}
 
 \end{figure}
 
